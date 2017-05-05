@@ -3,7 +3,6 @@ var socket = io.connect(window.location.pathname);
 //idle/afk users should change positions on the userlist board after so long of inactivity
 
 var ONLINE = {
-    
     users : {},
     getId : function (nick) {
         var keys = Object.keys(this.users),
@@ -17,8 +16,9 @@ var ONLINE = {
 };
 
 var Attributes = {
-    notifierAtt : ['flair', 'color', 'glow', 'bgcolor', 'font', 'filters'],
+    notifierAtt : ['flair', 'color', 'glow', 'bgcolor', 'font', 'filters', 'style'],
     altAtt : {colour : 'color', bg : 'background'},
+    saveLocal : ['flair', 'nick', 'color', 'glow', 'font', 'style', 'filters', 'role', 'token'],
     set : function (attribute, newValue, notify) {
         var oldValue = this.storedAttributes[attribute];
         this.storedAttributes[attribute] = newValue;
@@ -37,14 +37,17 @@ var Attributes = {
             });
         }
         
-        if (typeof newValue === 'object') {
-            localStorage.setItem('chat-' + attribute, JSON.stringify(newValue));
-        } else {
-            localStorage.setItem('chat-' + attribute, newValue);
+        if (this.saveLocal.indexOf(attribute) !== -1 || attribute.slice(0, 6) == 'toggle') {
+            if (typeof newValue === 'object') {
+                localStorage.setItem('chat-' + attribute, JSON.stringify(newValue));
+            } else {
+                localStorage.setItem('chat-' + attribute, newValue);
+            }   
         }
     },
     get : function (attribute) {
         var value = '';
+
 
         if (this.altAtt[attribute]) {
             attribute = this.altAtt[attribute];
@@ -147,9 +150,6 @@ var messageBuilder = {
             messageDIV.innerHTML = parser.escape(message);
         } else if (messageType === 'chat-image') {
             messageDIV.innerHTML = parser.parseImage(message.img, message.type);
-            if (count) {
-                container.classList += ' msg-' + count;
-            }
         } else {
 
             if (this.alertMessage(message, messageType, nick)) {
@@ -410,7 +410,7 @@ var clientSubmit = {
 }
 
 function channelTheme(channelData) {
-    if (channelData.note) {
+    if (channelData.note && channelData.note.value) {
         showMessage({
             message : channelData.note.value,
             messageType : 'note'
@@ -418,7 +418,7 @@ function channelTheme(channelData) {
         Attributes.set('note', channelData.note);
     }
 
-    if (channelData.topic) {
+    if (channelData.topic && channelData.topic.value) {
         document.title = channelData.topic.value;
         showMessage({
             message : 'Topic: ' + channelData.topic.value,
@@ -427,11 +427,11 @@ function channelTheme(channelData) {
         Attributes.set('topic', channelData.topic);
     }
 
-    if (channelData.background) {
+    if (channelData.background && channelData.background.value) {
         if (Attributes.get('toggle-background')) {
             document.getElementById('messages').style.background = channelData.background.value;
         }
-        Attributes.set('background', channelData.background);
+        Attributes.set('background', channelData.background.value);
     }
 
     if (channelData.themecolors && channelData.themecolors.value) {
@@ -472,6 +472,11 @@ function channelTheme(channelData) {
         
         Attributes.set('proxy', channelData.proxy);
     }
+    
+    /*console.log(channelData);
+    if (channelData.hats) {
+        console.log(channelData.hats);
+    }*/
 }
 
 function createPanel(title, html, func) {
@@ -603,7 +608,7 @@ var AutoComplete = {
         } else {
             var word = this.word = document.getElementById('ac').value.replace(/[\.,-\/#!$%\^&\*;:{}=\_`~()]/g, ' ').trim().split(' ').reverse()[0],
                 valids = Object.keys(ONLINE.users).filter(function (element) {
-                return ONLINE.users[element].nick.indexOf(word) === 0;
+                return ONLINE.users[element].nick.toLowerCase().indexOf(word.toLowerCase()) === 0;
             });
             if (valids.length === 0) return;
             if (valids.length === 1) {
@@ -710,8 +715,6 @@ var AutoComplete = {
             messageDiv = document.getElementById('messages');
 
         this.style.height = newHeight + 'px';
-        this.parentNode.style.top = -(newHeight - 18) + 'px';
-        
         messageDiv.style.top = -(newHeight - 18) + 'px';
         
         if (this.value.length === 0) {
@@ -755,7 +758,7 @@ var AutoComplete = {
         }
     });
     
-    $$$.query('.main-container').addEventListener('paste', function (e) {
+    $$$.query('#main-container').addEventListener('paste', function (e) {
         var acceptedFiletypes = ["image/png", "image/jpg", "image/jpeg", "image/gif", "image/webp"],
             file,
             items,
@@ -791,7 +794,7 @@ var AutoComplete = {
                 }
             }
 		}
-	}, false);
+    }, false);
     
     window.onblur = function() {
         window.blurred = true;
@@ -832,7 +835,7 @@ socket.on('channeldata', function (channel) {
     if (channel.users) {
         document.getElementsByClassName('userList')[0].innerHTML = '';
         ONLINE.users = {};
-        for (i = 0; i < channel.users.length; i++) {
+        for (i = 0; i < channel.users.length; i++) {            
             menuControl.addUser(channel.users[i].id, channel.users[i].nick, channel.users[i].afk, true);
         }
     }
@@ -886,9 +889,13 @@ socket.on('banlist', function (banlist) {
 socket.on('update', function (allAtt) {
     var keys = Object.keys(allAtt),
         i;
-
+    
     for (i = 0; i < keys.length; i++) {
-        Attributes.set(keys[i], allAtt[keys[i]], true);
+        if (keys[i] === 'hats') {
+            console.log(allAtt[keys[i]]);
+        } else {
+            Attributes.set(keys[i], allAtt[keys[i]], true);
+        }
     }
 });
 
@@ -930,17 +937,22 @@ socket.on('connect', function () {
 });
 
 socket.on('activeChannels', function (channels) {
+    var channelPanel = document.getElementsByClassName('channelPanel')[0],
+        activeChannels =channelPanel.getElementsByClassName('activeChannel'),
+        div,
+        i; 
+    
+    while (activeChannels.length) {
+        channelPanel.removeChild(activeChannels[0]);
+    }
     
     channels.sort(function (a, b) {
         return  b.online - a.online;
     });
     
-    var channelPanel = document.getElementsByClassName('channelPanel')[0],
-        div,
-        i;
-    
     for (i = 0; i < channels.length; i++) {
         div = document.createElement('div');
+        div.className = 'activeChannel';
         div.textContent = channels[i].name;
         channelPanel.appendChild(div);   
     }

@@ -53,16 +53,16 @@ var menuControl = {
                 message : user.nick + ' disconnected',
                 messageType : 'error'
             }, pmPanel.getElementsByClassName('messages')[0]);
-        } 
+        }
+        
+        if (user.cursor) {
+            user.cursor.parentNode.removeChild(user.cursor);
+        }
         
         document.getElementsByClassName('userList')[0].removeChild(user.li);
         delete ONLINE.users[id];
         
         menuControl.updateCount();
-        
-        if (user.cursor) {
-            user.cursor.parentNode.removeChild(user.cursor);
-        }
         
         showMessage({
             message : user.nick + ' has left',
@@ -266,6 +266,11 @@ var menuControl = {
         if (target.nodeName === 'LI') {
             for (i = 0; i < tabs.length; i++) {
                 panel = document.getElementsByClassName(tabs[i].id)[0];
+                
+                if (target.id === 'channelPanel') {
+                    socket.emit('activeChannels');
+                }
+                
                 if (target.id === panel.className) {
                     panel.style.display = 'block';
                 } else {
@@ -286,7 +291,7 @@ var menuControl = {
                 document.body.removeChild(contextMenu); 
             }
             menuContainer.style.width = '0px';
-            messages.style.width = '100%';
+            messages.style.width = 'calc(100% - 50px)';
             closing = false;
             messages.scrollTop = currentScroll;
             clearTimeout(timeOut);
