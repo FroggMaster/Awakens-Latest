@@ -1,16 +1,14 @@
-//10:00am
-
 var parser = {
     linkreg : /(http|https|ftp)\x3A\x2F\x2F(?:[\da-z](?:[\x2D\da-z]*[\da-z])?\.)+[\da-z](?:[\x2D\da-z]*[\da-z])?[a-z0-9\_\-\%\~\:\/\?\#\[\]\@\!\$\&\'\(\)\*\+\,\;\=\`\.]*/gi,
     clinkreg : /([a-z]+:\/\/(([0-9a-z\-\.]+\.[a-z]+\/[a-z0-9\_\-\~\:\/\?\#\[\]\@\!\$\&\'\%\(\)\*\+\,\;\=\`\.]+)|([0-9a-z\-\.]+\.[a-z]+\/)|([0-9a-z\-\.]+\.[a-z]+)))\[\{([\W\w]+)\}\]/gi,
     coloreg : 'yellowgreen|yellow|whitesmoke|white|wheat|violet|turquoise|tomato|thistle|teal|tan|steelblue|springgreen|snow|slategray|slateblue|skyblue|silver|sienna|seashell|seagreen|sandybrown|salmon|saddlebrown|royalblue|rosybrown|red|rebeccapurple|purple|powderblue|plum|pink|peru|peachpuff|papayawhip|palevioletred|paleturquoise|palegreen|palegoldenrod|orchid|orangered|orange|olivedrab|olive|oldlace|navy|navajowhite|moccasin|mistyrose|mintcream|midnightblue|mediumvioletred|mediumturquoise|mediumspringgreen|mediumslateblue|mediumseagreen|mediumpurple|mediumorchid|mediumblue|mediumaquamarine|maroon|magenta|linen|limegreen|lime|lightyellow|lightsteelblue|lightslategray|lightskyblue|lightseagreen|lightsalmon|lightpink|lightgreen|lightgray|lightgoldenrodyellow|lightcyan|lightcoral|lightblue|lemonchiffon|lawngreen|lavenderblush|lavender|khaki|ivory|indigo|indianred|hotpink|honeydew|greenyellow|green|gray|goldenrod|gold|ghostwhite|gainsboro|fuchsia|forestgreen|floralwhite|firebrick|dodgerblue|dimgray|deepskyblue|deeppink|darkviolet|darkturquoise|darkslategray|darkslateblue|darkseagreen|darksalmon|darkred|darkorchid|darkorange|darkolivegreen|darkmagenta|darkkhaki|darkgreen|darkgray|darkgoldenrod|darkcyan|darkblue|cyan|crimson|cornsilk|cornflowerblue|coral|chocolate|chartreuse|cadetblue|transparent|burlywood|brown|blueviolet|blue|blanchedalmond|black|bisque|beige|azure|aquamarine|aqua|antiquewhite|aliceblue',
-    customFontRegex : /(\£|(£))([\w \-\,Ã‚Â®]*)\|(.*)$/,
-    fontRegex : /(\$|(&#36;))([\w \-\,Ã‚Â®]*)\|(.*)$/,
+    customFontRegex : /(\£|(£))([\w \-\,Ã‚Â®]*)(\:([1-9]00|bold|lighter|bolder))?\|(.*)$/,
+    fontRegex : /(\$|(&#36;))([\w \-\,Ã‚Â®]*)(\:([1-9]00|bold|lighter|bolder))?\|(.*)$/,
     repslsh : 'ÃƒÂ¸ÃƒÂº!#@&5nÃƒÂ¥ÃƒÂ¶EESCHEInoheÃƒÂ.ÃƒÂ¤',
     replink : 'ÃƒÂ;ÃƒÂ¤!#@&5nÃƒÂ¸ÃƒÂºENONHEInoheÃƒÂ¥ÃƒÂ¶',
     repclink : 'ÃƒÂ;ÃƒÂ¤!#@&5cÃƒÂ¸ÃƒÂºENONHEInoheÃƒÂ¥ÃƒÂ¶',
     repnmliz : 'ÃƒÂ;ÃƒÂ¤!#@&5nÃƒÂ¸ÃƒÂ¶EESCHEInoheÃƒÂ_ÃƒÂ¤',
-    matches : 10,
+    matches : 6,
     multiple : function (str, mtch, rep, limit) {
         var ct = 0;
         limit = limit || 3000;
@@ -59,6 +57,7 @@ var parser = {
         message.scrollIntoView();
     },
     showQuote : function (messageNumber) {
+        var container = document.getElementById('messages');
         var messageContainer = document.getElementsByClassName('msg-' + messageNumber)[0];
         if (messageContainer) {
             var quoteHolder = document.createElement('div');
@@ -70,9 +69,14 @@ var parser = {
 
             document.body.appendChild(quoteHolder);
             //follow cursor
-            document.body.addEventListener('mousemove', function(e){
+            container.addEventListener('mousemove', function (e) {
+                if (e.clientY + messageContainer.offsetHeight > container.offsetHeight) {
+                    quoteHolder.style.top = container.offsetHeight - messageContainer.offsetHeight + 'px'
+                } else {
+                    quoteHolder.style.top = e.clientY + 'px';
+                }
+
                 quoteHolder.style.left = e.clientX + 'px';
-                quoteHolder.style.top = e.clientY + 'px';
             });
         }
     },
@@ -91,6 +95,8 @@ var parser = {
 
         //convert spaces
         str = str.replace(/\s{2}/gi, ' &nbsp;');
+        
+        str = str.replace(/(<br>)(.+)/g, '<div style="display:block;padding-left:3.5em;">$2</div>');
         return str;
     },
     wordReplace : function (str) {
@@ -146,7 +152,6 @@ var parser = {
         str = this.multiple(str, /\/\&#126;([^\|]+)\|?/g, '<small>$1</small>', this.matches);
         str = this.multiple(str, /\/\&#35;([^\|]+)\|?/g, '<span class="spoilerImg spoil">$1</span>', this.matches);
         str = this.multiple(str, /\/\+([^\|]+)\|?/g, '<div class="style spin">$1</div>', this.matches);
-        str = this.multiple(str, /\/\&amp;([^\|]+)\|?/g, '<span class="style marquee">$1</span>', 1);
         str = this.multiple(str, /\/\!([^\|]+)\|?/g, '<span class="style rainbow">$1</span>', this.matches);
         str = this.multiple(str, /\/\&#36;([^\|]+)\|?/g, '<span class="style shake">$1</span>', this.matches);
         str = this.multiple(str, /\/\@([^\|]+)\|?/g, '<span style="text-shadow: 0 0 2px white;color: transparent;">$1</span>', this.matches);
@@ -164,16 +169,7 @@ var parser = {
     },
     parse : function (str, wordReplace) {
         // Convert chars to html codes
-        str = str.replace(/\n/g, '\\n');
-        str = str.replace(/&/gi, '&amp;');
-        str = str.replace(/>/gi, '&gt;');
-        str = str.replace(/</gi, '&lt;');
-        str = str.replace(/"/gi, '&quot;');
-        str = str.replace(/#/gi, '&#35;');
-        str = str.replace(/\\n/g, '<br>');
-        str = str.replace(/\$/gi, '&#36;');
-        str = str.replace(/'/gi, '&#39;');
-        str = str.replace(/~/gi, '&#126;');
+        str = this.escape(str);
 
         //match user escaping
         var escs = str.match(/\\./g);
@@ -189,7 +185,7 @@ var parser = {
 
         //match clinks
         var clinks = str.match(this.clinkreg);
-        str = str.replace(this.clinkreg, this.repclink)
+        str = str.replace(this.clinkreg, this.repclink);
 
         //match links
         var linkesc = str.match(this.linkreg);
@@ -211,8 +207,22 @@ var parser = {
         str = this.color(str);
 
         //replace fonts
-        str = this.multiple(str, this.fontRegex, '<span style="font-family:\'$3\'">$4</span>');
-        str = this.multiple(str, this.customFontRegex, '<span style="font-family:\'$3\'">$4</span>');
+        str = this.multiple(str, this.fontRegex, function(match, p1, p2, p3, p4, p5, p6){
+            if (typeof p5 === "undefined") {
+                parser.addFont(p3);
+                return '<span style="font-family:\''+p3+'\'">'+p6+'</span>';
+            } else {
+                parser.addFont(p3+":"+p5);
+                return '<span style="font-family:\''+p3+'\';font-weight: '+p5+'">'+p6+'</span>';
+            }
+        });
+        str = this.multiple(str, this.customFontRegex, function(match, p1, p2, p3, p4, p5, p6){
+            if (typeof p5 === undefined) {
+                return '<span style="font-family:\''+p3+'\'">'+p6+'</span>';
+            } else {
+                return '<span style="font-family:\''+p3+'\';font-weight: '+p5+'">'+p6+'</span>';
+            }
+        });
         //replace user escaping
         for (var i in escs)
             str = str.replace(this.repslsh, escs[i][1]);
@@ -257,6 +267,7 @@ var parser = {
         str = str.replace(/<a [^>]*href="([^'"]*\.swf)">([^<]*)<\/a>/i, '<a target="_blank" href="$1">$1</a> <a href="javascript:void(0)" onclick="embed(\'swf\', \'$1\')" class="show-video">[video]</a>');
         str = str.replace(/<a [^>]*href="([^'"]*\.mp3)">([^<]*)<\/a>/i, '<a target="_blank" href="$2">$2</a> <a href="javascript:void(0)" onclick="embed(\'audio\', \'$1\')" class="show-video">[audio]</a>');
         str = str.replace(/<a [^>]*href="([^'"]*\.wav)">([^<]*)<\/a>/i, '<a target="_blank" href="$2">$2</a> <a href="javascript:void(0)" onclick="embed(\'audio\', \'$1\')" class="show-video">[audio]</a>');
+        str = str.replace(/<a [^>]*href="([^'"]*\.ogg)">([^<]*)<\/a>/i, '<a target="_blank" href="$2">$2</a> <a href="javascript:void(0)" onclick="embed(\'audio\', \'$1\')" class="show-video">[audio]</a>');
         str = str.replace(/<a [^>]*href="[^"]*ustream.tv\/embed\/(\d+)\?v=3&amp;wmode=direct">([^<]*)<\/a>/, '<a target="_blank" href="$2">$2</a> <a href="javascript:void(0)" onclick="embed(\'ustream\', \'$1\')" class="show-video">[video]</a>');
 
         var img = /(<a target="_blank" href="[^"]+?">)([^<]+?\.(?:agif|apng|gif|jpg|jpeg|png|bmp|svg))<\/a>/gi.exec(str);
@@ -269,7 +280,6 @@ var parser = {
             str = str.replace(this.repnmliz, '<textarea style="overflow:hidden;">' + normalize.replace(/<br>/g, '&#13;') + '</textarea>');
         }
         
-        str = str.replace(/(<br>)(.+)/g, '<div style="display:block;padding-left:3.5em;">$2</div>');
         //.replace(/(<br>)(.+)/, '<div>$2</div>')
         return str;
     },
@@ -285,20 +295,14 @@ var parser = {
         return str;
     },
     changeInput : function(type, value) {
-        if (navigator.userAgent.toLowerCase().indexOf('firefox') > -1) {
-            if (type == 'font') {
-                $$$.query(':-moz-read-write').style['font-family'] = value;
-            } else {
-                $$$.query(':-moz-read-write').style['color'] = value;
-            }
+        if (type == 'font'){
+            $$$.query('#input-bar textarea').style.fontFamily = value;
         } else {
-            if (type == 'font'){
-                $$$.query(':read-write').style['font-family'] = value;
+            if (parser.coloreg.indexOf(value) === -1) {
+                $$$.query('#input-bar textarea').style.color = '#' + value;
             } else {
-                $$$.query(':read-write').style['color'] = value;
+                $$$.query('#input-bar textarea').style.color = value;
             }
-            
-            
-        }
+        } 
     }
 };
